@@ -32,7 +32,7 @@ class Hierarchy_SearchPlugin(plugins.SingletonPlugin):
     # IPackageController
 
     def before_search(self, data_dict):
-        if (g.controller, g.action) == ('organization', 'read'):
+        if toolkit.get_endpoint() == ('organization', 'read'):
 
             data_dict['fq'] = RE_ORG_FQ.sub(
                 _id_expander,
