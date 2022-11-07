@@ -7,7 +7,7 @@ import ckan.plugins.toolkit as toolkit
 from ckan.common import g
 
 RE_ORG_FQ = re.compile(r'owner_org:(\'|")?([^\s\'"]+)(?(1)\1)')
-
+RE_GRP_FQ = re.compile(r'groups:(\'|")?([^\s\'"]+)(?(1)\1)')
 
 def _id_expander(match):
     org = model.Group.get(match.group(2))
@@ -17,12 +17,18 @@ def _id_expander(match):
 
     if disable_sub_search:
         return match.group(0)
-    fq = ' OR '.join(
-        '"{}"'.format(org.id)
-        for org in org.get_children_groups('organization') + [org]
-    )
-
-    return 'owner_org:({})'.format(fq)
+    if toolkit.get_endpoint()[0] == 'organization':
+        fq = ' OR '.join(
+            '"{}"'.format(org.id)
+            for org in org.get_children_groups('organization') + [org]
+        )
+        return 'owner_org:({})'.format(fq)
+    elif toolkit.get_endpoint()[0] == 'group':
+        fq = ' OR '.join(
+            '"{}"'.format(grp.name)
+            for grp in org.get_children_groups('group') + [org]
+        )
+        return 'groups:({})'.format(fq)
 
 
 class Hierarchy_SearchPlugin(plugins.SingletonPlugin):
@@ -35,6 +41,12 @@ class Hierarchy_SearchPlugin(plugins.SingletonPlugin):
         if toolkit.get_endpoint() == ('organization', 'read'):
 
             data_dict['fq'] = RE_ORG_FQ.sub(
+                _id_expander,
+                data_dict.get('fq', ''),
+            )
+
+        if toolkit.get_endpoint() == ('group', 'read'):
+            data_dict['fq'] = RE_GRP_FQ.sub(
                 _id_expander,
                 data_dict.get('fq', ''),
             )
